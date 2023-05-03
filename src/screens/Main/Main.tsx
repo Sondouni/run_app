@@ -5,6 +5,10 @@ import MapView, {Polyline, PROVIDER_GOOGLE} from "react-native-maps";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Geolocation from 'react-native-geolocation-service';
 import MapStyle from './MapStyle.json';
+import instance from '../../Utils/axiosHelper';
+import socket from '../../Utils/socketHelper';
+import axios from "axios";
+import {io} from "socket.io-client";
 
 export interface Props {
     navigation: any;
@@ -14,6 +18,7 @@ function Main({navigation}: any) {
 
 
     const [nickName, setNickName] = useState(null);
+    const [userShow, setUserShow] = useState('Y');
     const [tempNickName, setTempNickName] = useState('');
 
     const [curLoca, setCurLoca] = useState(null);
@@ -22,6 +27,7 @@ function Main({navigation}: any) {
     const [watchId, setWatchId] = useState(null);
 
     const watchRef = useRef(null);
+    const webSocket = useRef(null);
 
     useEffect(() => {
         checkNickName();
@@ -47,17 +53,20 @@ function Main({navigation}: any) {
         );
     }, []);
 
-    const startWatch = () => {
+    const startWatch = async () => {
         const returnedWatchId = Geolocation.watchPosition(successCallback, (err) => console.log(err), watchOption);
         console.log('watchId : ', returnedWatchId);
         setWatchId(returnedWatchId);
     }
 
-    const finishWatch = () => {
+    const finishWatch = async () => {
         if (watchId != null) {
             Geolocation.clearWatch(watchId);
             setWatchId(null)
             setMyCurLocaList([]);
+        }
+        if (webSocket.current != null){
+            webSocket.current.close();
         }
     }
 
@@ -73,6 +82,12 @@ function Main({navigation}: any) {
         })
         setCurLoca(obj.coords);
         console.log(obj, "watch");
+        if(webSocket.current!=null){
+            const rightNow = new Date();
+            console.log(rightNow);
+            const transObj = {nickName,reg_dt:Date.now(),userShow,latitude: obj.coords.latitude, longitude: obj.coords.longitude};
+            webSocket.current.send(JSON.stringify(transObj));
+        }
     }
 
     const checkNickName = async () => {
@@ -83,6 +98,36 @@ function Main({navigation}: any) {
         } else {
             setNickName('');
         }
+    }
+
+    const insertUserName = async () => {
+        return await instance.get('/user');
+    }
+
+    const connectSocket = async () => {
+        const tempSocket = new WebSocket(`ws://172.30.1.35:8080/socket/${nickName}`);
+        webSocket.current = tempSocket;
+        // 소켓 연결 시
+        tempSocket.onopen = () => {
+            // const transObj = {nickName,reg_dt:Date.now(),userShow};
+            // tempSocket.send(JSON.stringify(transObj)); // 메세지 전송
+        };
+
+        // 메세지 수신
+        tempSocket.onmessage = e => {
+            console.log(e.data);
+        };
+
+        // 에러 발생시
+        tempSocket.onerror = e => {
+            console.log(e.message);
+        };
+
+
+        // 소켓 연결 해제
+        tempSocket.onclose = e => {
+            console.log(e.code, e.reason);
+        };
     }
 
     useEffect(()=>{
@@ -152,9 +197,13 @@ function Main({navigation}: any) {
                 }
                 <View style={{position: 'absolute', bottom: 50, alignSelf: 'center'}}>
                     <TouchableOpacity
-                        onPress={() => {
-                            console.log(watchId);
-                            watchId == null ? startWatch() : finishWatch();
+                        onPress={async () => {
+                            if(watchId == null){
+                                const result = await connectSocket();
+                                await startWatch();
+                            }else {
+                                await finishWatch();
+                            }
                         }}
                         activeOpacity={0.8}
                     >

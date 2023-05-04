@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {useEffect, useRef, useState} from 'react';
-import {View, Text, TextInput, TouchableOpacity} from 'react-native';
-import MapView, {Polyline, PROVIDER_GOOGLE} from "react-native-maps";
+import {View, Text, TextInput, TouchableOpacity,Platform} from 'react-native';
+import MapView, {Marker, Polyline, PROVIDER_GOOGLE} from "react-native-maps";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Geolocation from 'react-native-geolocation-service';
 import MapStyle from './MapStyle.json';
@@ -9,6 +9,8 @@ import instance from '../../Utils/axiosHelper';
 import socket from '../../Utils/socketHelper';
 import axios from "axios";
 import {io} from "socket.io-client";
+import Icon from 'react-native-vector-icons/Ionicons';
+
 
 export interface Props {
     navigation: any;
@@ -18,11 +20,12 @@ function Main({navigation}: any) {
 
 
     const [nickName, setNickName] = useState(null);
-    const [userShow, setUserShow] = useState('Y');
+    const [userShow, setUserShow] = useState('N');
     const [tempNickName, setTempNickName] = useState('');
 
     const [curLoca, setCurLoca] = useState(null);
     const [myCurLocaList, setMyCurLocaList] = useState([]);
+    const [otherRunner,setOtherRunner] = useState([]);
 
     const [watchId, setWatchId] = useState(null);
 
@@ -55,7 +58,7 @@ function Main({navigation}: any) {
 
     const startWatch = async () => {
         const returnedWatchId = Geolocation.watchPosition(successCallback, (err) => console.log(err), watchOption);
-        console.log('watchId : ', returnedWatchId);
+        // console.log('watchId : ', returnedWatchId);
         setWatchId(returnedWatchId);
     }
 
@@ -64,6 +67,7 @@ function Main({navigation}: any) {
             Geolocation.clearWatch(watchId);
             setWatchId(null)
             setMyCurLocaList([]);
+            setOtherRunner([]);
         }
         if (webSocket.current != null){
             webSocket.current.close();
@@ -81,11 +85,12 @@ function Main({navigation}: any) {
             return state.concat({latitude: obj.coords.latitude, longitude: obj.coords.longitude})
         })
         setCurLoca(obj.coords);
-        console.log(obj, "watch");
+        // console.log(obj, "watch");
+        console.log(`${Platform.OS}@@@`);
         if(webSocket.current!=null){
             const rightNow = new Date();
-            console.log(rightNow);
-            const transObj = {nickName,reg_dt:Date.now(),userShow,latitude: obj.coords.latitude, longitude: obj.coords.longitude};
+            // console.log(rightNow);
+            const transObj = {nickName,reg_dt:Date.now(),show:userShow,latitude: obj.coords.latitude+'', longitude: obj.coords.longitude+''};
             webSocket.current.send(JSON.stringify(transObj));
         }
     }
@@ -101,11 +106,12 @@ function Main({navigation}: any) {
     }
 
     const insertUserName = async () => {
-        return await instance.get('/user');
+        return await instance.post('/user',{user_nm:tempNickName});
     }
 
     const connectSocket = async () => {
-        const tempSocket = new WebSocket(`ws://172.30.1.35:8080/socket/${nickName}`);
+        const tempSocket = new WebSocket(`ws://13.125.253.232:8080/socket/${nickName}/${userShow}`);
+        // const tempSocket = new WebSocket(`ws://172.30.1.35:8080/socket/${nickName}/${userShow}`);
         webSocket.current = tempSocket;
         // 소켓 연결 시
         tempSocket.onopen = () => {
@@ -115,7 +121,23 @@ function Main({navigation}: any) {
 
         // 메세지 수신
         tempSocket.onmessage = e => {
-            console.log(e.data);
+            console.log(e.data,`app message받음@@${nickName}`);
+            const dataObj = JSON.parse(e.data);
+            let check = false;
+            const newState = otherRunner.map((item,index)=>{
+                if(item.nickName==dataObj.nickName){
+                    item.latitude = Number(dataObj.latitude);
+                    item.longitude = Number(dataObj.longitude);
+                    item.reg_dt = dataObj.reg_dt;
+                    check = true;
+                }
+                return item;
+            })
+            if(!check){
+                newState.push(dataObj);
+            }
+            console.log(dataObj);
+            setOtherRunner(newState);
         };
 
         // 에러 발생시
@@ -169,10 +191,38 @@ function Main({navigation}: any) {
                                 //     {latitude: 37.5200, longitude: 127.0260895},
                                 // ]}
                                 coordinates={myCurLocaList}
-                                strokeColor="white" // fallback for when `strokeColors` is not supported by the map-provider
-                                strokeWidth={6}
+                                strokeColor="#F53C39" // fallback for when `strokeColors` is not supported by the map-provider
+                                strokeWidth={4}
                             />
                         }
+                        {otherRunner.map((item,index)=>{
+                            return(
+                                <Marker
+                                    key={index}
+                                    coordinate={{latitude: Number(item.latitude), longitude: Number(item.longitude)}}
+                                >
+                                    <View style={{backgroundColor:'white',paddingHorizontal:10,paddingVertical:5,borderRadius:5}}>
+                                        <View>
+                                            <Text>
+                                                {`${item.nickName}`}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </Marker>
+                            )
+                        })}
+                        {/*<Marker*/}
+                        {/*    coordinate={{latitude: 37.5170, longitude: 127.0264895}}*/}
+                        {/*>*/}
+                        {/*    <View style={{backgroundColor:'white',paddingHorizontal:10,paddingVertical:5,borderRadius:5}}>*/}
+                        {/*        <View>*/}
+                        {/*            <Text>*/}
+                        {/*                테스트*/}
+                        {/*            </Text>*/}
+                        {/*        </View>*/}
+                        {/*    </View>*/}
+
+                        {/*</Marker>*/}
                         {/*<Polyline*/}
                         {/*    coordinates={[*/}
                         {/*        {latitude: 37.520926, longitude: 127.0265895},*/}
@@ -195,6 +245,33 @@ function Main({navigation}: any) {
                         {/*/>*/}
                     </MapView>
                 }
+                <View style={{position: 'absolute', bottom: 110, alignSelf: 'center'}}>
+                    <TouchableOpacity
+                        onPress={async () => {
+                            if (userShow=='Y'){
+                                setUserShow('N');
+                            }else {
+                                setUserShow('Y');
+                            }
+                        }}
+                        activeOpacity={0.8}
+                    >
+                        <View style={{
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            flexDirection:'row',
+                        }}>
+                            <Icon
+                                name={userShow=='Y'?'checkbox-sharp':"checkbox-outline"}
+                                size={20}
+                                color="white"
+                            />
+                            <Text style={{color:'white',fontSize:13,marginLeft:5}}>
+                                {`같이뛰기`}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+                </View>
                 <View style={{position: 'absolute', bottom: 50, alignSelf: 'center'}}>
                     <TouchableOpacity
                         onPress={async () => {
@@ -247,8 +324,13 @@ function Main({navigation}: any) {
                 <TouchableOpacity
                     onPress={async () => {
                         if (tempNickName != '') {
-                            await AsyncStorage.setItem('nickName', tempNickName);
-                            setNickName(tempNickName);
+                            const result = await insertUserName();
+                            if(result.data.result==1){
+                                await AsyncStorage.setItem('nickName', tempNickName);
+                                setNickName(tempNickName);
+                            }else {
+                                console.log(result.data);
+                            }
                         }
                     }}
                 >

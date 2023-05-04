@@ -17,7 +17,8 @@ import {
     useColorScheme,
     View,
     PermissionsAndroid,
-    Platform
+    Platform,
+    TouchableOpacity
 } from 'react-native';
 
 import {
@@ -54,6 +55,7 @@ const App: () => Node = () => {
 
     useEffect(()=>{
         requestLocationPermission();
+        console.log(locaPermission,'locaPermission');
     },[])
 
 
@@ -61,7 +63,13 @@ const App: () => Node = () => {
         <>
             {locaPermission==null?
                     (
-                        <></>
+                        <>
+                            <View style={{flex:1,alignItems:'center',justifyContent:'center'}}>
+                                <Text>
+                                    위치동의 없이는 앱 사용이 어렵습니다.
+                                </Text>
+                            </View>
+                        </>
                     )
                 :
                     (locaPermission?
@@ -73,7 +81,26 @@ const App: () => Node = () => {
 
                             :
                                 (
-                                    <></>
+                                    <>
+                                        <View style={{flex:1,alignItems:'center',justifyContent:'center'}}>
+                                            <Text>
+                                                위치동의 없이는 앱 사용이 어렵습니다.
+                                            </Text>
+                                            <TouchableOpacity
+                                                style={{marginTop:10}}
+                                                onPress={()=>{
+                                                    requestLocationPermission();
+                                                    console.log('testestest')
+                                                }}
+                                            >
+                                                <View style={{backgroundColor:'black',height:50,paddingHorizontal:10,alignItems:'center',justifyContent:'center',borderRadius:10}}>
+                                                    <Text style={{color:'white'}}>
+                                                        위치동의하기
+                                                    </Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </>
                                 )
 
                         )

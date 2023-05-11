@@ -2,7 +2,9 @@ import { useEffect } from "react";
 import {CardStyleInterpolators, createNativeStackNavigator} from '@react-navigation/native-stack';
 import Main from "../screens/Main/Main";
 import History from "../screens/History/History";
+import HistoryDetail from "../screens/HistoryDetail/HistoryDetail";
 import {createBottomTabNavigator} from "@react-navigation/bottom-tabs";
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const Tab = createBottomTabNavigator();
 const TabNavigation = () =>{
@@ -16,6 +18,13 @@ const TabNavigation = () =>{
                 options={{
                     title:'Main',
                     headerShown: false,
+                    tabBarIcon: ({color}) => {
+                        return <Icon
+                            name={"map-outline"}
+                            size={20}
+                            color={color}
+                        />;
+                    },
                 }}
             />
             <Tab.Screen
@@ -24,6 +33,13 @@ const TabNavigation = () =>{
                 options={{
                     title:'History',
                     headerShown: false,
+                    tabBarIcon: ({color}) => {
+                        return <Icon
+                            name={"list-outline"}
+                            size={20}
+                            color={color}
+                        />;
+                    },
                 }}
             />
         </Tab.Navigator>
@@ -51,10 +67,13 @@ const AppNavigation = () =>{
                     headerShown: false,
                 }}
             />
-            {/*<Stack.Screen*/}
-            {/*    name="History"*/}
-            {/*    component={History}*/}
-            {/*/>*/}
+            <Stack.Screen
+                name="HistoryDetail"
+                component={HistoryDetail}
+                options={{
+                    headerShown: false,
+                }}
+            />
         </Stack.Navigator>
     )
 }

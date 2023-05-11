@@ -78,5 +78,24 @@
       <string>Zocial.ttf</string>
       <string>Fontisto.ttf</string>
     </array>
+    <key>KAKAO_APP_KEY</key>
+    <string>1b7cf76fd88b14b54a6361fc30021b6d</string>
+
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+    <key>NSAllowsArbitraryLoadsInWebContent</key>
+    <true/>
+    <key>NSExceptionDomains</key>
+    <dict>
+        <key>https://172.30.1.30:5501</key>
+        <dict>
+            <key>NSExceptionAllowsInsecureHTTPLoads</key>
+            <true/>
+            <key>NSExceptionRequiresForwardSecrecy</key>
+            <true/>
+            <key>NSIncludesSubdomains</key>
+            <true/>
+        </dict>
+    </dict>
 </dict>
 </plist>

@@ -10,6 +10,7 @@ import socket from '../../Utils/socketHelper';
 import axios from "axios";
 import {io} from "socket.io-client";
 import Icon from 'react-native-vector-icons/Ionicons';
+import {SafeAreaView} from "react-native-safe-area-context";
 
 
 export interface Props {
@@ -22,22 +23,36 @@ function Main({navigation}: any) {
     const [nickName, setNickName] = useState(null);
     const [userShow, setUserShow] = useState('N');
     const [tempNickName, setTempNickName] = useState('');
+    const [curAddr,setCurAddr] = useState(null);
+    const [curDistance,setCurDistance] = useState(0);
+    const [dpNickNameErr,setDpNickNameErr] = useState(false);
+    const [nickNameErr,setNickNameErr] = useState(false);
 
     const [curLoca, setCurLoca] = useState(null);
     const [myCurLocaList, setMyCurLocaList] = useState([]);
+    const [sendLocaList,setSendLocaList] = useState([]);
     const [otherRunner,setOtherRunner] = useState([]);
 
     const [watchId, setWatchId] = useState(null);
 
-    const watchRef = useRef(null);
+    const watchIntervalRef = useRef(null);
+    const curLocaRef = useRef(null);
     const webSocket = useRef(null);
 
     useEffect(() => {
         checkNickName();
         Geolocation.getCurrentPosition(
-            (position) => {
+            async (position) => {
                 console.log(position, 'getCurrentPosition');
                 setCurLoca(position.coords);
+                const result = await getCurAdd(position.coords);
+                if(result.data!=null){
+                    if(result.data.documents!=null&&result.data.documents.length>0){
+                        console.log(result.data.documents[0]);
+                        setCurAddr(`${result.data.documents[0].address.region_1depth_name} ${result.data.documents[0].address.region_2depth_name} ${result.data.documents[0].address.region_3depth_name}`);
+                    }
+                }
+                console.log(result.data,'KAKAO@@@');
             },
             (error) => {
                 // setCurLoca({latitude: 37.5170, longitude: 127.0264895});
@@ -60,6 +75,12 @@ function Main({navigation}: any) {
         const returnedWatchId = Geolocation.watchPosition(successCallback, (err) => console.log(err), watchOption);
         // console.log('watchId : ', returnedWatchId);
         setWatchId(returnedWatchId);
+        watchIntervalRef.current = setInterval(()=>{
+            if(webSocket.current!=null && curLocaRef.current!=null){
+                const transObj = {nickName,reg_dt:Date.now(),show:userShow,latitude: curLocaRef.current.latitude+'', longitude: curLocaRef.current.longitude+''};
+                webSocket.current.send(JSON.stringify(transObj));
+            }
+        },5000)
     }
 
     const finishWatch = async () => {
@@ -72,6 +93,10 @@ function Main({navigation}: any) {
         if (webSocket.current != null){
             webSocket.current.close();
         }
+        if(watchIntervalRef.current!=null){
+            clearInterval(watchIntervalRef.current);
+        }
+        setCurDistance(0);
     }
 
     const watchOption = {
@@ -87,12 +112,7 @@ function Main({navigation}: any) {
         setCurLoca(obj.coords);
         // console.log(obj, "watch");
         console.log(`${Platform.OS}@@@`);
-        if(webSocket.current!=null){
-            const rightNow = new Date();
-            // console.log(rightNow);
-            const transObj = {nickName,reg_dt:Date.now(),show:userShow,latitude: obj.coords.latitude+'', longitude: obj.coords.longitude+''};
-            webSocket.current.send(JSON.stringify(transObj));
-        }
+        curLocaRef.current = {...obj.coords};
     }
 
     const checkNickName = async () => {
@@ -110,8 +130,8 @@ function Main({navigation}: any) {
     }
 
     const connectSocket = async () => {
-        const tempSocket = new WebSocket(`ws://13.125.253.232:8080/socket/${nickName}/${userShow}`);
-        // const tempSocket = new WebSocket(`ws://172.30.1.35:8080/socket/${nickName}/${userShow}`);
+        // const tempSocket = new WebSocket(encodeURI(`ws://13.125.253.232:8080/socket/${nickName}/${userShow}/${curAddr}`));
+        const tempSocket = new WebSocket(encodeURI(`ws://172.30.1.35:8080/socket/${nickName}/${userShow}/${curAddr}`));
         webSocket.current = tempSocket;
         // 소켓 연결 시
         tempSocket.onopen = () => {
@@ -123,21 +143,35 @@ function Main({navigation}: any) {
         tempSocket.onmessage = e => {
             console.log(e.data,`app message받음@@${nickName}`);
             const dataObj = JSON.parse(e.data);
-            let check = false;
-            const newState = otherRunner.map((item,index)=>{
-                if(item.nickName==dataObj.nickName){
-                    item.latitude = Number(dataObj.latitude);
-                    item.longitude = Number(dataObj.longitude);
-                    item.reg_dt = dataObj.reg_dt;
-                    check = true;
+            if(dataObj.distance!=null){
+                console.log(dataObj.distance);
+                console.log(typeof dataObj.distance);
+                setCurDistance(state=>{return state+dataObj.distance});
+            }else if(dataObj.finishedUser=="Y"){
+                setOtherRunner(state=>{
+                    return state.map((item,index)=>{
+                        if(item.nickName!=dataObj.nickName){
+                            return item;
+                        }
+                    })
+                })
+            }else {
+                let check = false;
+                const newState = otherRunner.map((item,index)=>{
+                    if(item.nickName==dataObj.nickName){
+                        item.latitude = Number(dataObj.latitude);
+                        item.longitude = Number(dataObj.longitude);
+                        item.reg_dt = dataObj.reg_dt;
+                        check = true;
+                    }
+                    return item;
+                })
+                if(!check){
+                    newState.push(dataObj);
                 }
-                return item;
-            })
-            if(!check){
-                newState.push(dataObj);
+                console.log(dataObj);
+                setOtherRunner(newState);
             }
-            console.log(dataObj);
-            setOtherRunner(newState);
         };
 
         // 에러 발생시
@@ -150,6 +184,17 @@ function Main({navigation}: any) {
         tempSocket.onclose = e => {
             console.log(e.code, e.reason);
         };
+    }
+
+    const getCurAdd = async (obj) => {
+        return await axios.get(
+            `https://dapi.kakao.com/v2/local/geo/coord2address.json?input_coord=WGS84&x=${obj.longitude}&y=${obj.latitude}`,
+            {
+                headers: {
+                    Authorization: 'KakaoAK a1725f73d8f2210e891f17870815bfcc',  // REST API 키
+                },
+            },
+        )
     }
 
     useEffect(()=>{
@@ -182,69 +227,47 @@ function Main({navigation}: any) {
                     >
                         {myCurLocaList.length>0&&
                             <Polyline
-                                // coordinates={[
-                                //     {latitude: 37.5180926, longitude: 127.0265895},
-                                //     {latitude: 37.5170, longitude: 127.0264895},
-                                //     {latitude: 37.5160, longitude: 127.0263895},
-                                //     {latitude: 37.5180, longitude: 127.0262895},
-                                //     {latitude: 37.5190, longitude: 127.0261895},
-                                //     {latitude: 37.5200, longitude: 127.0260895},
-                                // ]}
+
                                 coordinates={myCurLocaList}
                                 strokeColor="#F53C39" // fallback for when `strokeColors` is not supported by the map-provider
                                 strokeWidth={4}
                             />
                         }
                         {otherRunner.map((item,index)=>{
-                            return(
-                                <Marker
-                                    key={index}
-                                    coordinate={{latitude: Number(item.latitude), longitude: Number(item.longitude)}}
-                                >
-                                    <View style={{backgroundColor:'white',paddingHorizontal:10,paddingVertical:5,borderRadius:5}}>
-                                        <View>
-                                            <Text>
-                                                {`${item.nickName}`}
-                                            </Text>
+                            if(item!=null && item!= undefined){
+                                return(
+                                    <Marker
+                                        key={index}
+                                        coordinate={{latitude: Number(item.latitude), longitude: Number(item.longitude)}}
+                                    >
+                                        <View style={{backgroundColor:'white',paddingHorizontal:10,paddingVertical:5,borderRadius:5}}>
+                                            <View>
+                                                <Text>
+                                                    {`${item.nickName}`}
+                                                </Text>
+                                            </View>
                                         </View>
-                                    </View>
-                                </Marker>
-                            )
+                                    </Marker>
+                                )
+                            }
                         })}
-                        {/*<Marker*/}
-                        {/*    coordinate={{latitude: 37.5170, longitude: 127.0264895}}*/}
-                        {/*>*/}
-                        {/*    <View style={{backgroundColor:'white',paddingHorizontal:10,paddingVertical:5,borderRadius:5}}>*/}
-                        {/*        <View>*/}
-                        {/*            <Text>*/}
-                        {/*                테스트*/}
-                        {/*            </Text>*/}
-                        {/*        </View>*/}
-                        {/*    </View>*/}
 
-                        {/*</Marker>*/}
-                        {/*<Polyline*/}
-                        {/*    coordinates={[*/}
-                        {/*        {latitude: 37.520926, longitude: 127.0265895},*/}
-                        {/*        {latitude: 37.5210, longitude: 127.0264895},*/}
-                        {/*        {latitude: 37.5220, longitude: 127.0263895},*/}
-                        {/*        {latitude: 37.5230, longitude: 127.0262895},*/}
-                        {/*        {latitude: 37.5240, longitude: 127.0261895},*/}
-                        {/*        {latitude: 37.5250, longitude: 127.0260895},*/}
-                        {/*    ]}*/}
-                        {/*    strokeColor="yellow" // fallback for when `strokeColors` is not supported by the map-provider*/}
-                        {/*    // strokeColors={[*/}
-                        {/*    //     '#7F0000',*/}
-                        {/*    //     '#00000000', // no color, creates a "long" gradient between the previous and next coordinate*/}
-                        {/*    //     '#B24112',*/}
-                        {/*    //     '#E5845C',*/}
-                        {/*    //     '#238C23',*/}
-                        {/*    //     '#7F0000',*/}
-                        {/*    // ]}*/}
-                        {/*    strokeWidth={6}*/}
-                        {/*/>*/}
                     </MapView>
                 }
+                <View style={{position:'absolute',top:10,left:20}}>
+                    <SafeAreaView>
+                        {curAddr!=null&&
+                            <Text style={{color:'white',fontSize:30}}>
+                                {`${curAddr}`}
+                            </Text>
+                        }
+                        {curDistance>0&&
+                            <Text style={{color: 'white',fontSize:20,marginTop:30}}>
+                                {`${curDistance}m`}
+                            </Text>
+                        }
+                    </SafeAreaView>
+                </View>
                 <View style={{position: 'absolute', bottom: 110, alignSelf: 'center'}}>
                     <TouchableOpacity
                         onPress={async () => {
@@ -306,12 +329,27 @@ function Main({navigation}: any) {
     const needNickName = () => {
         return (
             <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-                <View>
+                <View style={{marginVertical:20}}>
                     <Text>
                         닉네임을 입력해주세요
                     </Text>
                 </View>
-                <View>
+                {dpNickNameErr&&
+                    <View>
+                        <Text style={{color:'red'}}>
+                            닉네임이 중복되었습니다.
+                        </Text>
+                    </View>
+                }
+                {nickNameErr&&
+                    <View>
+                        <Text style={{color:'red'}}>
+                            잠시후 다시 시도해주세요.
+                        </Text>
+                    </View>
+                }
+
+                <View style={{marginVertical:15}}>
                     <TextInput
                         value={tempNickName}
                         onChangeText={(str) => {
@@ -325,11 +363,13 @@ function Main({navigation}: any) {
                     onPress={async () => {
                         if (tempNickName != '') {
                             const result = await insertUserName();
-                            if(result.data.result==1){
+                            if(result.data.result.result==1){
                                 await AsyncStorage.setItem('nickName', tempNickName);
                                 setNickName(tempNickName);
+                            }else if(result.data.result.result==2){
+                                setDpNickNameErr(true);
                             }else {
-                                console.log(result.data);
+                                setNickNameErr(true);
                             }
                         }
                     }}

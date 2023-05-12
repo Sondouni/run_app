@@ -3,6 +3,7 @@ import {CardStyleInterpolators, createNativeStackNavigator} from '@react-navigat
 import Main from "../screens/Main/Main";
 import History from "../screens/History/History";
 import HistoryDetail from "../screens/HistoryDetail/HistoryDetail";
+import Test from "../screens/Test/Test";
 import {createBottomTabNavigator} from "@react-navigation/bottom-tabs";
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -59,6 +60,8 @@ const AppNavigation = () =>{
     return(
         <Stack.Navigator
             headerMode="none"
+            initialRouteName={'Home'}
+            // initialRouteName={'Test'}
         >
             <Stack.Screen
                 name="Home"
@@ -70,6 +73,13 @@ const AppNavigation = () =>{
             <Stack.Screen
                 name="HistoryDetail"
                 component={HistoryDetail}
+                options={{
+                    headerShown: false,
+                }}
+            />
+            <Stack.Screen
+                name="Test"
+                component={Test}
                 options={{
                     headerShown: false,
                 }}

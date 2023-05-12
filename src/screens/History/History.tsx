@@ -11,6 +11,7 @@ import {
 
     getDate
 } from '../../Utils/Utils';
+import {useIsFocused} from "@react-navigation/native";
 
 export interface Props {
     navigation: any;
@@ -23,7 +24,7 @@ function History({navigation}: any) {
     const [testText,setTestText] = useState('');
     const [testBtn,setTestBtn] = useState(false);
 
-
+    const isFocused = useIsFocused();
 
     const getUserNickName = async () =>{
         const nickName = await AsyncStorage.getItem("nickName");
@@ -38,7 +39,7 @@ function History({navigation}: any) {
         if(nickName!=null){
             makeUserHistory();
         }
-    },[nickName])
+    },[nickName,isFocused])
 
     const makeUserHistory = async () =>{
         const result = await getUserHistory();

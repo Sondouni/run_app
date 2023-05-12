@@ -1950,6 +1950,11 @@
     "@typescript-eslint/types" "5.59.2"
     "eslint-visitor-keys" "^3.3.0"
 
+"@voximplant/react-native-foreground-service@^3.0.2":
+  "integrity" "sha512-ZIyccOAXPqznA1PAVAYlKZ+GI7kXYCuYgH+gmAkhPouyJbkgrSXaCJJzQ+uBkPr4FBa/PuC/yjzK8vf6tJREQA=="
+  "resolved" "https://registry.npmjs.org/@voximplant/react-native-foreground-service/-/react-native-foreground-service-3.0.2.tgz"
+  "version" "3.0.2"
+
 "abort-controller@^3.0.0":
   "integrity" "sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg=="
   "resolved" "https://registry.npmjs.org/abort-controller/-/abort-controller-3.0.0.tgz"
@@ -3353,6 +3358,11 @@
   "integrity" "sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ=="
   "resolved" "https://registry.npmjs.org/event-target-shim/-/event-target-shim-5.0.1.tgz"
   "version" "5.0.1"
+
+"eventemitter3@^4.0.7":
+  "integrity" "sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw=="
+  "resolved" "https://registry.npmjs.org/eventemitter3/-/eventemitter3-4.0.7.tgz"
+  "version" "4.0.7"
 
 "execa@^1.0.0":
   "integrity" "sha512-adbxcyWV46qiHyvSp50TKt05tB4tK3HcmF7/nxfAdhnox83seTDbwnaqKO4sXRy7roHAIFqJP/Rw/AuEbX61LA=="
@@ -6115,6 +6125,13 @@
   "resolved" "https://registry.npmjs.org/react-is/-/react-is-18.2.0.tgz"
   "version" "18.2.0"
 
+"react-native-background-actions@^3.0.0":
+  "integrity" "sha512-O/KFdetp8n9cwSfPJQ7hPywTaEHO1ui7ISxKTGkzHxs3IVgEV+QOvKKLxAkTcQs1w5f68KK/LoQsEVwMpbVqew=="
+  "resolved" "https://registry.npmjs.org/react-native-background-actions/-/react-native-background-actions-3.0.0.tgz"
+  "version" "3.0.0"
+  dependencies:
+    "eventemitter3" "^4.0.7"
+
 "react-native-codegen@^0.0.17":
   "integrity" "sha512-7GIEUmAemH9uWwB6iYXNNsPoPgH06pxzGRmdBzK98TgFBdYJZ7CBuZFPMe4jmHQTPOkQazKZ/w5O6/71JBixmw=="
   "resolved" "https://registry.npmjs.org/react-native-codegen/-/react-native-codegen-0.0.17.tgz"
@@ -6171,7 +6188,7 @@
     "escape-string-regexp" "2.0.0"
     "invariant" "2.2.4"
 
-"react-native@*", "react-native@^0.0.0-0 || 0.60 - 0.72 || 1000.0.0", "react-native@>= 0.64.3", "react-native@0.68.2":
+"react-native@*", "react-native@^0.0.0-0 || 0.60 - 0.72 || 1000.0.0", "react-native@>= 0.41.2", "react-native@>= 0.64.3", "react-native@>=0.47.0", "react-native@0.68.2":
   "integrity" "sha512-qNMz+mdIirCEmlrhapAtAG+SWVx6MAiSfCbFNhfHqiqu1xw1OKXdzIrjaBEPihRC2pcORCoCHduHGQe/Pz9Yuw=="
   "resolved" "https://registry.npmjs.org/react-native/-/react-native-0.68.2.tgz"
   "version" "0.68.2"

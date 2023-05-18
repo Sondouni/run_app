@@ -11,7 +11,7 @@ import axios from "axios";
 import {io} from "socket.io-client";
 import Icon from 'react-native-vector-icons/Ionicons';
 import {SafeAreaView} from "react-native-safe-area-context";
-
+import VIForegroundService from '@voximplant/react-native-foreground-service';
 
 export interface Props {
     navigation: any;
@@ -71,16 +71,41 @@ function Main({navigation}: any) {
         );
     }, []);
 
+    const startForegroundService = async () => {
+        if (Platform.Version >= 26) {
+            await VIForegroundService.getInstance().createNotificationChannel({
+                id: 'locationChannel',
+                name: 'Location Tracking Channel',
+                description: 'Tracks location of user',
+                enableVibration: false,
+            });
+        }
+
+        return VIForegroundService.getInstance().startService({
+            channelId: 'locationChannel',
+            id: 420,
+            title: 'test',
+            text: 'Tracking location updates',
+            icon: 'ic_launcher',
+        });
+    };
+
     const startWatch = async () => {
+        if (Platform.OS === 'android' && true) {
+            await startForegroundService();
+        }
+
         const returnedWatchId = Geolocation.watchPosition(successCallback, (err) => console.log(err), watchOption);
-        // console.log('watchId : ', returnedWatchId);
         setWatchId(returnedWatchId);
         watchIntervalRef.current = setInterval(()=>{
-            if(webSocket.current!=null && curLocaRef.current!=null){
-                const transObj = {nickName,reg_dt:Date.now(),show:userShow,latitude: curLocaRef.current.latitude+'', longitude: curLocaRef.current.longitude+''};
-                webSocket.current.send(JSON.stringify(transObj));
+            if(Platform.OS === 'ios' &&webSocket.current!=null ){
+            // if(Platform.OS === 'ios' &&webSocket.current!=null && curLocaRef.current!=null){
+                console.log('IOS Interval WORKING');
+                Geolocation.getCurrentPosition((position)=>{console.log(position)},(err)=>{console.log(err)})
+                // const transObj = {nickName,reg_dt:Date.now(),show:userShow,latitude: curLocaRef.current.latitude+'', longitude: curLocaRef.current.longitude+''};
+                // webSocket.current.send(JSON.stringify(transObj));
             }
-        },5000)
+        },3000)
     }
 
     const finishWatch = async () => {
@@ -96,13 +121,30 @@ function Main({navigation}: any) {
         if(watchIntervalRef.current!=null){
             clearInterval(watchIntervalRef.current);
         }
+
+        if (Platform.OS === 'android') {
+            VIForegroundService.getInstance()
+                .stopService()
+                .catch((err: any) => err);
+        }
+
         setCurDistance(0);
     }
 
     const watchOption = {
+        accuracy: {
+            android: 'high',
+            ios: 'best',
+        },
         enableHighAccuracy: true,
-        distanceFilter: 1,
-        interval: 10000
+        distanceFilter: 0,
+        interval: 30000,
+        fastestInterval:30000,
+        forceRequestLocation: true,
+        forceLocationManager: false,
+        showLocationDialog: true,
+        useSignificantChanges: false,
+        showsBackgroundLocationIndicator:true
     }
 
     const successCallback = (obj) => {
@@ -113,6 +155,12 @@ function Main({navigation}: any) {
         // console.log(obj, "watch");
         console.log(`${Platform.OS}@@@`);
         curLocaRef.current = {...obj.coords};
+
+
+        if(Platform.OS === 'android' && webSocket.current!=null && curLocaRef.current!=null){
+            const transObj = {nickName,reg_dt:Date.now(),show:userShow,latitude: curLocaRef.current.latitude+'', longitude: curLocaRef.current.longitude+''};
+            webSocket.current.send(JSON.stringify(transObj));
+        }
     }
 
     const checkNickName = async () => {

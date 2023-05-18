@@ -4,6 +4,7 @@ import Main from "../screens/Main/Main";
 import History from "../screens/History/History";
 import HistoryDetail from "../screens/HistoryDetail/HistoryDetail";
 import Test from "../screens/Test/Test";
+import MapTest from "../screens/MapTest/MapTest";
 import {createBottomTabNavigator} from "@react-navigation/bottom-tabs";
 import Icon from 'react-native-vector-icons/Ionicons';
 
@@ -60,8 +61,8 @@ const AppNavigation = () =>{
     return(
         <Stack.Navigator
             headerMode="none"
-            initialRouteName={'Home'}
-            // initialRouteName={'Test'}
+            // initialRouteName={'Home'}
+            initialRouteName={'MapTest'}
         >
             <Stack.Screen
                 name="Home"
@@ -80,6 +81,13 @@ const AppNavigation = () =>{
             <Stack.Screen
                 name="Test"
                 component={Test}
+                options={{
+                    headerShown: false,
+                }}
+            />
+            <Stack.Screen
+                name="MapTest"
+                component={MapTest}
                 options={{
                     headerShown: false,
                 }}

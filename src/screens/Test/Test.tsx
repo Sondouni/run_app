@@ -16,8 +16,10 @@ import Geolocation, { GeoPosition } from 'react-native-geolocation-service';
 import {SafeAreaView} from "react-native-safe-area-context";
 import VIForegroundService from '@voximplant/react-native-foreground-service';
 import instance from '../../Utils/axiosHelper';
+import KeepAwake from 'react-native-keep-awake';
 
-export default function App() {
+
+export default function Test({navigation}: any) {
     const [forceLocation, setForceLocation] = useState(true);
     const [highAccuracy, setHighAccuracy] = useState(true);
     const [locationDialog, setLocationDialog] = useState(true);
@@ -26,9 +28,11 @@ export default function App() {
     const [foregroundService, setForegroundService] = useState(false);
     const [useLocationManager, setUseLocationManager] = useState(false);
     const [location, setLocation] = useState<GeoPosition | null>(null);
+    const [socketState,setSocketState] = useState(null);
 
     const watchId = useRef<number | null>(null);
     const intervalId = useRef(null);
+    const webSocket = useRef(null);
 
     const stopLocationUpdates = () => {
         if (Platform.OS === 'android') {
@@ -49,6 +53,7 @@ export default function App() {
     };
 
     useEffect(() => {
+        KeepAwake.activate();
         return () => {
             stopLocationUpdates();
         };
@@ -159,6 +164,20 @@ export default function App() {
         );
     };
 
+    const openSocket = async () =>{
+        const tempSocket = new WebSocket(encodeURI(`ws://172.30.1.48:3001/tracking`));
+        console.log(tempSocket,'TEST');
+        webSocket.current = tempSocket;
+        setSocketState(tempSocket);
+        // 소켓 연결 시
+        tempSocket.onopen = (ev) => {
+                console.log(ev,' socket on ');
+        };
+        tempSocket.onmessage = e => {
+            console.log(e.data,' socket receive ');
+        }
+    }
+
     const testApi = async (obj) => {
         return await instance.get('/user',{params:obj});
     }
@@ -176,7 +195,9 @@ export default function App() {
 
         setObserving(true);
 
-        // intervalId.current = setInterval(()=>{console.log('TESTSET')},1000)
+        // intervalId.current = setInterval(()=>{
+        //     console.log('TESTSTDSD');
+        // },1000)
 
         watchId.current = Geolocation.watchPosition(
             async position => {
@@ -225,6 +246,40 @@ export default function App() {
             icon: 'ic_launcher',
         });
     };
+
+    function generateRandomCoordinates() {
+        const numCoordinates = 5000;
+        const centerLat = 37.5270;
+        const centerLng = 127.0276;
+        const radius = 1; // in kilometers
+
+        const coordinates = [];
+
+        for (let i = 0; i < numCoordinates; i++) {
+            // Convert radius from kilometers to degrees
+            const radiusInDegrees = radius / 111.32;
+
+            const u = Math.random();
+            const v = Math.random();
+            const w = radiusInDegrees * Math.sqrt(u);
+            const t = 2 * Math.PI * v;
+            const x = w * Math.cos(t);
+            const y = w * Math.sin(t);
+
+            // Adjust the x-coordinate for the desired center of the circle
+            const newLng = x / Math.cos(centerLat);
+
+            const foundLng = centerLng + newLng;
+            const foundLat = centerLat + y;
+
+            coordinates.push({ lat: foundLat, lng: foundLng });
+        }
+
+        return coordinates;
+    }
+
+    // Usage
+
 
     return (
         <SafeAreaView style={styles.mainContainer}>
@@ -287,7 +342,8 @@ export default function App() {
                     <View style={styles.buttons}>
                         <Button
                             title="Start Observing"
-                            onPress={getLocationUpdates}
+                            // onPress={getLocationUpdates}
+                            onPress={openSocket}
                             disabled={observing}
                         />
                         <Button
@@ -313,6 +369,28 @@ export default function App() {
                             : ''}
                     </Text>
                 </View>
+                <View>
+                    <Button
+                        title="앱으로 가기"
+                        // onPress={()=>{navigation.navigate('Home')}}
+                        onPress={()=>{
+                            const randomCoordinates = generateRandomCoordinates();
+                            console.log(randomCoordinates);
+                        }}
+                    />
+                </View>
+                {socketState!=null &&
+                    <View style={{marginTop:50}}>
+                        <Button
+                            title="메세지 보내기"
+                            onPress={()=>{
+                                const transObj = {"usrCd":2,"location":{"type":"Point","coordinates":[34.1231241,128.1231203]}};
+                                socketState.send(JSON.stringify(transObj));
+                            }}
+                        />
+                    </View>
+                }
+
             </ScrollView>
         </SafeAreaView>
     );

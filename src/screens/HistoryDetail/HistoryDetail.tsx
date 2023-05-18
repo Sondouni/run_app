@@ -28,7 +28,12 @@ function HistoryDetail({navigation,route}: any) {
     const settingFc = async () => {
         const result = await getUserHistory();
         console.log(result.data);
-        setMyRunHistory(result.data.list);
+        const newList = result.data.list.map((item)=>{
+            item.latitude = Number(item.latitude);
+            item.longitude = Number(item.longitude);
+            return item;
+        })
+        setMyRunHistory(newList);
     }
 
     //통신
@@ -44,6 +49,10 @@ function HistoryDetail({navigation,route}: any) {
     useEffect(()=>{
         settingFc();
     },[])
+
+    useEffect(()=>{
+        console.log(myRunHistory,'?%?%??%?%?');
+    },[myRunHistory])
 
     return (
         <SafeAreaView style={{marginHorizontal:20,paddingVertical:20,flex:1}}>
@@ -70,8 +79,8 @@ function HistoryDetail({navigation,route}: any) {
                                 customMapStyle={MapStyle}
                                 zoomEnabled={false}
                                 initialRegion={{
-                                    latitude: myRunHistory[0].latitude,
-                                    longitude: myRunHistory[0].longitude,
+                                    latitude: Number(myRunHistory[0].latitude),
+                                    longitude: Number(myRunHistory[0].longitude),
                                     latitudeDelta: 0.01,
                                     longitudeDelta: 0.01,
                                 }}

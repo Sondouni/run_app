@@ -1,3 +1,8 @@
+import GeoViewport from '@mapbox/geo-viewport';
+import { Dimensions } from "react-native";
+
+const { width, height } = Dimensions.get("window");
+
 export const getDate = (long,type) => {
     const weekday = ["일","월","화","수","목","금","토"];
 
@@ -36,3 +41,56 @@ export const getDate = (long,type) => {
     return result;
 
 };
+
+
+export const markerToGeoJSONFeature = (marker, index) => {
+    return {
+        type: "Feature",
+        geometry: {
+            coordinates: [
+                marker.lng,
+                marker.lat,
+            ],
+            type: "Point",
+        },
+        properties: {
+            point_count: 0,
+            index,
+            // ..._removeChildrenFromProps(marker.props),
+        },
+    };
+};
+
+export const returnMapZoom = (bBox, minZoom) => {
+    const viewport = GeoViewport.viewport(bBox, [width, height]);
+    console.log(viewport);
+    return viewport.zoom;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const _removeChildrenFromProps = (props) => {
+    const newProps = {};
+    Object.keys(props).forEach((key) => {
+        if (key !== "children") {
+            newProps[key] = props[key];
+        }
+    });
+    return newProps;
+};
+
+

@@ -18,7 +18,8 @@ import {
     View,
     PermissionsAndroid,
     Platform,
-    TouchableOpacity
+    TouchableOpacity,
+    LogBox
 } from 'react-native';
 
 import {
@@ -34,6 +35,9 @@ import Geolocation from 'react-native-geolocation-service';
 
 
 const App: () => Node = () => {
+
+    LogBox.ignoreAllLogs();
+
     const isDarkMode = useColorScheme() === 'dark';
 
     const [locaPermission,setLocaPermission] = useState(null);
